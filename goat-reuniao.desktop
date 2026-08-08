@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Goat Reunião
+Comment=Transcrição local de reuniões e prompts de voz
+Exec=/usr/bin/goat-reuniao
+Icon=goat-reuniao
+Terminal=false
+Type=Application
+Categories=Utility;Audio;
+StartupNotify=false

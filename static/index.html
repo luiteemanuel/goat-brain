@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goat Reunião — Transcrição Local</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #262b36;
+    --text: #e8eaf0;
+    --muted: #8b93a3;
+    --accent: #4f8cff;
+    --accent-2: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 0 18px; border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  header .badge {
+    margin-left: auto; font-size: 12px; color: var(--muted);
+    border: 1px solid var(--border); padding: 4px 10px; border-radius: 999px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); }
+  .dot.on { background: var(--accent-2); box-shadow: 0 0 8px var(--accent-2); }
+
+  .tabs { display: flex; gap: 8px; margin: 18px 0 16px; }
+  .tab {
+    flex: 1; padding: 10px; text-align: center; cursor: pointer;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--panel); color: var(--muted); font-size: 14px; font-weight: 600;
+    transition: all .15s;
+  }
+  .tab.active { color: var(--text); border-color: var(--accent); background: rgba(79,140,255,.08); }
+  .tab:hover { border-color: var(--accent); }
+
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+
+  /* Reunião */
+  .meeting-ctrl { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .btn-record {
+    padding: 14px 28px; font-size: 15px; font-weight: 700; cursor: pointer;
+    border: none; border-radius: 12px; color: #fff;
+    background: var(--accent); transition: all .15s;
+  }
+  .btn-record:hover { filter: brightness(1.1); }
+  .btn-record.rec { background: var(--red); animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.5); } 50% { box-shadow: 0 0 0 10px rgba(239,68,68,0); } }
+  .rec-status { font-size: 13px; color: var(--muted); }
+  .rec-status.live { color: var(--red); font-weight: 600; }
+
+  /* Waveform */
+  .waveform {
+    display: none; align-items: center; gap: 3px; height: 36px;
+    padding: 0 6px; flex: 1;
+  }
+  .waveform.active { display: flex; }
+  .waveform .bar {
+    width: 3px; min-height: 4px; border-radius: 2px;
+    background: var(--accent); animation: wave 1s ease-in-out infinite;
+  }
+  .waveform.recording .bar { background: var(--red); }
+  @keyframes wave {
+    0%, 100% { height: 4px; }
+    50% { height: 28px; }
+  }
+
+  .actions { margin: 16px 0 0; display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-sm {
+    padding: 8px 14px; font-size: 13px; cursor: pointer; border-radius: 8px;
+    border: 1px solid var(--border); background: transparent; color: var(--muted); transition: all .15s;
+  }
+  .btn-sm:hover { color: var(--text); border-color: var(--accent); }
+
+  .segments { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; max-height: 52vh; overflow-y: auto; }
+  .seg {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;
+    display: flex; gap: 12px; align-items: flex-start;
+    animation: fadein .25s ease;
+  }
+  @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+  .seg .time { font-size: 12px; color: var(--accent); font-variant-numeric: tabular-nums; margin-top: 2px; white-space: nowrap; }
+  .seg .txt { font-size: 14.5px; line-height: 1.55; color: var(--text); }
+  .seg.pending .txt { color: var(--muted); font-style: italic; }
+  .empty { text-align: center; color: var(--muted); padding: 40px 0; font-size: 14px; }
+
+  /* Prompt */
+  .tt-area { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 10px 0; }
+  .tt-btn {
+    width: 190px; height: 190px; border-radius: 50%; cursor: pointer;
+    border: 3px solid var(--accent); background: rgba(79,140,255,.10);
+    color: var(--accent); font-size: 17px; font-weight: 700; user-select: none;
+    display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.35;
+    transition: all .12s; touch-action: none;
+  }
+  .tt-btn:hover { background: rgba(79,140,255,.18); }
+  .tt-btn:active, .tt-btn.pressed { background: var(--red); border-color: var(--red); color: #fff; transform: scale(.96); }
+  .tt-hint { font-size: 13px; color: var(--muted); }
+  .tt-result {
+    width: 100%; min-height: 120px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px; font-size: 15px; line-height: 1.6; white-space: pre-wrap;
+  }
+  .tt-result:empty::before { content: "O texto transcrito aparece aqui (e vai pro seu clipboard automaticamente)."; color: var(--muted); }
+  .tt-actions { display: flex; gap: 8px; width: 100%; }
+  .copied-toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--accent-2); color: #04120a; font-weight: 600; font-size: 13px;
+    padding: 10px 18px; border-radius: 10px; opacity: 0; pointer-events: none; transition: all .2s;
+  }
+  .copied-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Vídeo */
+  .dropzone {
+    border: 2px dashed var(--border); border-radius: 12px; padding: 24px 16px;
+    text-align: center; color: var(--muted); cursor: pointer; transition: all .15s;
+  }
+  .dropzone:hover, .dropzone.over { border-color: var(--accent); color: var(--text); }
+  .dropzone p:first-child { font-size: 15px; margin-bottom: 4px; }
+  .dropzone p.tt-hint { margin-top: 4px; }
+  .video-path-row { display: flex; gap: 8px; margin-top: 12px; }
+  .video-path-row input {
+    flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 9px 12px; font-size: 13px; outline: none;
+  }
+  .video-path-row input:focus { border-color: var(--accent); }
+  .video-status { margin-top: 12px; font-size: 13px; color: var(--muted); min-height: 18px; }
+  .video-status.busy { color: var(--amber); }
+  .video-status.ok { color: var(--accent-2); }
+  .video-status.error { color: var(--red); }
+
+  footer { margin-top: 24px; display: flex; align-items: center; gap: 12px; justify-content: center; }
+  footer select {
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 10px; font-size: 13px;
+  }
+  footer .note { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🎙️ Goat Reunião</h1>
+    <span class="badge"><span class="dot" id="gpuDot"></span><span id="gpuLabel">iniciando…</span></span>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="meeting">Reunião</div>
+    <div class="tab" data-tab="prompt">Prompt IA</div>
+    <div class="tab" data-tab="video">Vídeo</div>
+  </div>
+
+  <section id="tab-meeting" class="tab-content">
+    <div class="panel">
+      <div class="meeting-ctrl">
+        <button class="btn-record" id="recordBtn">▶ Iniciar transcrição</button>
+        <div class="waveform" id="meetingWaveform"></div>
+        <span class="rec-status" id="recStatus">Parado</span>
+      </div>
+      <div class="actions">
+        <button class="btn-sm" id="copyAllBtn">📋 Copiar tudo</button>
+        <button class="btn-sm" id="clearBtn">🗑 Limpar</button>
+        <button class="btn-sm" id="saveBtn">💾 Salvar .txt</button>
+      </div>
+      <div class="segments" id="segments">
+        <div class="empty">A transcrição da reunião aparece aqui em tempo real.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-prompt" class="tab-content" style="display:none">
+    <div class="panel">
+    <div class="tt-area">
+      <button class="tt-btn" id="ttBtn">SEGURAR<br>PARA FALAR</button>
+      <div class="waveform" id="promptWaveform"></div>
+      <span class="tt-hint">Em qualquer lugar, sem abrir o app: segure <b>F1</b> ou <b>Mouse 4</b>, fale e solte — o texto é digitado no campo focado. <b>F2</b> liga/desliga a reunião.</span>
+        <div class="tt-actions">
+          <button class="btn-sm" id="ttCopyBtn">📋 Copiar</button>
+          <button class="btn-sm" id="ttClearBtn">🗑 Limpar</button>
+        </div>
+        <div class="tt-result" id="ttResult"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-video" class="tab-content" style="display:none">
+    <div class="panel">
+      <div class="dropzone" id="dropzone">
+        <p>🎬 Arraste um vídeo (ou áudio) aqui</p>
+        <p class="tt-hint">ou</p>
+        <button class="btn-sm" id="pickBtn" type="button">📁 Escolher arquivo…</button>
+      </div>
+      <div class="video-path-row">
+        <input type="text" id="videoPath" placeholder="/caminho/para/arquivo.mp4" spellcheck="false">
+        <button class="btn-sm" id="videoStartBtn" type="button">▶ Transcrever</button>
+        <button class="btn-sm" id="videoCancelBtn" type="button" style="display:none">⏹ Cancelar</button>
+      </div>
+      <div class="video-status" id="videoStatus"></div>
+      <div class="actions">
+        <button class="btn-sm" id="videoCopyBtn" type="button">📋 Copiar tudo</button>
+        <button class="btn-sm" id="videoSaveBtn" type="button">💾 Salvar .txt</button>
+        <button class="btn-sm" id="videoClearBtn" type="button">🗑 Limpar</button>
+      </div>
+      <div class="segments" id="videoSegments">
+        <div class="empty">A transcrição do vídeo aparece aqui.</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span class="note">Modelo: large-v3-turbo · 100% local · F1/Mouse 4: prompt · F2: reunião</span>
+    <select id="langSelect">
+      <option value="pt">Português</option>
+      <option value="en">English</option>
+      <option value="es">Español</option>
+      <option value="auto">Auto-detect</option>
+    </select>
+  </footer>
+</div>
+
+<div class="copied-toast" id="toast">Copiado para a área de transferência ✓</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const lang = () => $("langSelect").value;
+const invoke = (cmd, args) => window.__TAURI__.core.invoke(cmd, args || {});
+const BAR_COUNT = 24;
+
+/* Build waveform bars */
+function buildWaveform(el, recording) {
+  el.innerHTML = "";
+  for (let i = 0; i < BAR_COUNT; i++) {
+    const bar = document.createElement("span");
+    bar.className = "bar";
+    const delay = (Math.random() * 1).toFixed(2);
+    const dur = (0.6 + Math.random() * 0.8).toFixed(2);
+    bar.style.animationDelay = `-${delay}s`;
+    bar.style.animationDuration = `${dur}s`;
+    el.appendChild(bar);
+  }
+  if (recording) el.classList.add("recording");
+}
+buildWaveform($("meetingWaveform"), false);
+buildWaveform($("promptWaveform"), false);
+
+/* Tabs */
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x === t));
+  document.querySelectorAll(".tab-content").forEach(s => {
+    s.style.display = s.id === "tab-" + t.dataset.tab ? "" : "none";
+  });
+}));
+
+/* Toast */
+let toastTimer;
+function toast(msg) {
+  $("toast").textContent = msg;
+  $("toast").classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $("toast").classList.remove("show"), 1800);
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand("copy"); ta.remove();
+  }
+}
+
+/* Reunião */
+let recording = false;
+const segs = [];
+let nextSegId = 0;
+
+function addSegmentEl(id, text, ts, pending) {
+  if ($("segments").querySelector(".empty")) $("segments").innerHTML = "";
+  let el = [...$("segments").querySelectorAll(".seg")].find(item => item.dataset.id === String(id));
+  if (!el) {
+    el = document.createElement("div");
+    el.className = "seg" + (pending ? " pending" : "");
+    el.dataset.id = id;
+    el.innerHTML = `<span class="time"></span><span class="txt"></span>`;
+    $("segments").appendChild(el);
+  }
+  el.querySelector(".time").textContent = ts || "";
+  el.querySelector(".txt").textContent = text;
+  el.classList.remove("pending");
+  $("segments").scrollTop = $("segments").scrollHeight;
+}
+
+function setRecording(on) {
+  recording = on;
+  $("recordBtn").textContent = on ? "■ Parar transcrição" : "▶ Iniciar transcrição";
+  $("recordBtn").classList.toggle("rec", on);
+  $("recStatus").textContent = on ? "Gravando… fale normalmente" : "Parado";
+  $("recStatus").classList.toggle("live", on);
+  $("meetingWaveform").classList.toggle("active", on);
+}
+
+$("recordBtn").addEventListener("click", async () => {
+  try {
+    if (recording) {
+      await invoke("meeting_stop");
+    } else {
+      await invoke("meeting_start");
+    }
+  } catch (e) {
+    setRecording(false);
+    toast("Erro ao alterar a reunião: " + (e && e.message ? e.message : e));
+  }
+});
+
+$("copyAllBtn").addEventListener("click", async () => {
+  const text = segs.map(s => `[${s.ts}] ${s.text}`).join("\n");
+  if (text) { await copyText(text); toast("Reunião copiada ✓"); }
+});
+$("clearBtn").addEventListener("click", () => {
+  segs.length = 0;
+  $("segments").innerHTML = '<div class="empty">A transcrição da reunião aparece aqui em tempo real.</div>';
+});
+$("saveBtn").addEventListener("click", () => {
+  const text = segs.map(s => `[${s.ts}] ${s.text}`).join("\n");
+  const blob = new Blob([text], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `reuniao-${new Date().toISOString().slice(0, 16).replace("T", "-")}.txt`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("Arquivo salvo ✓");
+});
+
+/* Prompt push-to-talk */
+let ttActive = false;
+async function ttStart() {
+  if (ttActive) return;
+  ttActive = true;
+  $("ttBtn").classList.add("pressed");
+  $("ttBtn").innerHTML = "🎙️ FALANDO…<br>solte para transcrever";
+  $("promptWaveform").classList.add("active");
+  await invoke("tt_start");
+}
+async function ttStop() {
+  if (!ttActive) return;
+  ttActive = false;
+  $("ttBtn").classList.remove("pressed");
+  $("ttBtn").innerHTML = "SEGURAR<br>PARA FALAR";
+  $("promptWaveform").classList.remove("active");
+  try {
+    const data = await invoke("tt_stop", { language: lang() });
+    if (data.ok && data.text) {
+      $("ttResult").textContent = data.text;
+      await copyText(data.text);
+      toast("Transcrito e copiado ✓");
+    } else if (!data.ok) {
+      toast("Erro: " + (data.error || "sem áudio"));
+    }
+  } catch (e) { toast("Erro de conexão"); }
+}
+$("ttBtn").addEventListener("pointerdown", ttStart);
+$("ttBtn").addEventListener("pointerup", ttStop);
+$("ttBtn").addEventListener("pointerleave", () => { if (ttActive) ttStop(); });
+$("ttCopyBtn").addEventListener("click", async () => {
+  if ($("ttResult").textContent) { await copyText($("ttResult").textContent); toast("Copiado ✓"); }
+});
+$("ttClearBtn").addEventListener("click", () => $("ttResult").textContent = "");
+
+document.addEventListener("keydown", e => {
+  if (e.code === "Space" && $("tab-prompt").style.display !== "none" &&
+      !e.repeat && !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    ttStart();
+  }
+});
+document.addEventListener("keyup", e => {
+  if (e.code === "Space") ttStop();
+});
+
+/* Vídeo */
+let videoSegs = [];
+let videoBusy = false;
+
+function setVideoBusy(b) {
+  videoBusy = b;
+  $("videoStartBtn").disabled = b;
+  $("videoStartBtn").textContent = b ? "Transcrevendo…" : "▶ Transcrever";
+  $("videoCancelBtn").style.display = b ? "" : "none";
+}
+function addVideoSeg(ts, text) {
+  if ($("videoSegments").querySelector(".empty")) $("videoSegments").innerHTML = "";
+  const el = document.createElement("div");
+  el.className = "seg";
+  el.innerHTML = `<span class="time"></span><span class="txt"></span>`;
+  el.querySelector(".time").textContent = ts;
+  el.querySelector(".txt").textContent = text;
+  $("videoSegments").appendChild(el);
+  $("videoSegments").scrollTop = $("videoSegments").scrollHeight;
+}
+function videoStatus(msg, cls) {
+  const el = $("videoStatus");
+  el.textContent = msg;
+  el.className = "video-status" + (cls ? " " + cls : "");
+}
+function resetVideoList() {
+  videoSegs = [];
+  $("videoSegments").innerHTML = '<div class="empty">A transcrição do vídeo aparece aqui.</div>';
+  videoStatus("");
+  setVideoBusy(false);
+}
+
+async function pickVideoFile() {
+  const dialog = window.__TAURI__ && window.__TAURI__.dialog;
+  if (!dialog || typeof dialog.open !== "function") {
+    toast("Diálogo indisponível — cole o caminho abaixo");
+    $("videoPath").focus();
+    return;
+  }
+  try {
+    const selected = await dialog.open({ multiple: false, directory: false,
+      filters: [{ name: "Mídia", extensions: ["mp3", "mp4", "wav", "m4a", "webm", "mkv", "avi", "mov"] }] });
+    if (typeof selected === "string") {
+      $("videoPath").value = selected;
+      toast("Arquivo selecionado ✓");
+    }
+  } catch (e) { toast("Erro ao escolher arquivo"); }
+}
+async function startVideoTranscribe() {
+  if (videoBusy) return;
+  const p = $("videoPath").value.trim();
+  if (!p) { toast("Escolha um arquivo primeiro"); return; }
+  resetVideoList();
+  setVideoBusy(true);
+  videoStatus("Extraindo áudio e transcrevendo…", "busy");
+  try { await invoke("video_transcribe", { path: p, language: lang() }); }
+  catch (e) {
+    setVideoBusy(false);
+    videoStatus("Erro: " + (e && e.message ? e.message : e), "error");
+  }
+}
+
+$("pickBtn").addEventListener("click", pickVideoFile);
+$("dropzone").addEventListener("click", pickVideoFile);
+["dragover", "dragenter"].forEach(ev =>
+  $("dropzone").addEventListener(ev, e => { e.preventDefault(); $("dropzone").classList.add("over"); }));
+["dragleave", "drop"].forEach(ev =>
+  $("dropzone").addEventListener(ev, e => { e.preventDefault(); $("dropzone").classList.remove("over"); }));
+
+$("videoStartBtn").addEventListener("click", startVideoTranscribe);
+$("videoPath").addEventListener("keydown", e => { if (e.key === "Enter") startVideoTranscribe(); });
+$("videoCancelBtn").addEventListener("click", async () => {
+  try { await invoke("video_cancel"); } catch {}
+  videoStatus("Cancelando…", "busy");
+});
+$("videoCopyBtn").addEventListener("click", async () => {
+  const text = videoSegs.map(s => `[${s.ts}] ${s.text}`).join("\n\n");
+  if (text) { await copyText(text); toast("Vídeo copiado ✓"); }
+});
+$("videoSaveBtn").addEventListener("click", () => {
+  const text = videoSegs.map(s => `[${s.ts}] ${s.text}`).join("\n\n");
+  if (!text) return;
+  const blob = new Blob([text], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `video-${new Date().toISOString().slice(0, 16).replace("T", "-")}.txt`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("Arquivo salvo ✓");
+});
+$("videoClearBtn").addEventListener("click", resetVideoList);
+
+/* Eventos Tauri */
+window.__TAURI__.event.listen("segment", ev => {
+  const d = ev.payload;
+  segs.push({ id: d.id, text: d.text, ts: d.ts });
+  addSegmentEl(d.id, d.text, d.ts, false);
+});
+window.__TAURI__.event.listen("segment_queued", ev => {
+  addSegmentEl(ev.payload.id, "Transcrevendo…", null, true);
+});
+window.__TAURI__.event.listen("meeting_state", ev => {
+  setRecording(ev.payload.state === "on");
+});
+window.__TAURI__.event.listen("error", ev => {
+  const message = ev.payload.message || "erro desconhecido";
+  if (message.includes("reunião") || message.includes("motor offline") || message.includes("dispositivo")) {
+    setRecording(false);
+  }
+  toast(message);
+});
+window.__TAURI__.event.listen("tt_result", ev => {
+  $("ttResult").textContent = ev.payload.text;
+  copyText(ev.payload.text);
+  toast("Transcrito e copiado ✓");
+});
+window.__TAURI__.event.listen("video_segment", ev => {
+  const d = ev.payload;
+  videoSegs.push({ ts: d.ts, text: d.text });
+  addVideoSeg(d.ts, d.text);
+});
+window.__TAURI__.event.listen("video_progress", ev => {
+  const d = ev.payload;
+  videoStatus(d.total ? `Segmento ${d.done}/${d.total}…` : `Segmento ${d.done}…`, "busy");
+});
+window.__TAURI__.event.listen("video_done", ev => {
+  setVideoBusy(false);
+  videoStatus(ev.payload.segments ? "Concluído ✓" : "Nenhum áudio detectado", "ok");
+});
+window.__TAURI__.event.listen("video_canceled", () => {
+  setVideoBusy(false);
+  videoStatus("Cancelado", "ok");
+});
+window.__TAURI__.event.listen("video_error", ev => {
+  setVideoBusy(false);
+  videoStatus("Erro: " + ev.payload.message, "error");
+});
+window.__TAURI__.event.listen("tauri://drag-drop", ev => {
+  const paths = ev.payload && ev.payload.paths;
+  if (paths && paths.length) {
+    $("videoPath").value = paths[0];
+    toast("Arquivo selecionado ✓");
+  }
+});
+
+/* Status inicial */
+(async () => {
+  try {
+    const d = await invoke("get_status");
+    $("gpuLabel").textContent = d.whisper ? "GPU Vulkan (RX 6600) · online" : "motor offline";
+    $("gpuDot").classList.toggle("on", d.whisper);
+    if (d.meeting) setRecording(true);
+  } catch { $("gpuLabel").textContent = "offline"; }
+})();
+</script>
+</body>
+</html>

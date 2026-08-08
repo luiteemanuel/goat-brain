@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "GoatReuniao",
+  "version": "0.1.0",
+  "identifier": "dev.goat.reuniao",
+  "build": {
+    "frontendDist": "../static"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Goat Reunião",
+        "width": 900,
+        "height": 740,
+        "minWidth": 640,
+        "minHeight": 480,
+        "resizable": true
+      },
+      {
+        "label": "overlay",
+        "url": "overlay.html",
+        "title": "",
+        "width": 420,
+        "height": 90,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "focusable": false,
+        "shadow": false,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "appimage"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.png", "icons/icon.ico"],
+    "resources": ["../bin/whisper-server", "../models/ggml-large-v3-turbo.bin"],
+    "category": "utility",
+    "shortDescription": "Transcrição local de reuniões e prompts de voz",
+    "longDescription": "Goat Reunião — transcrição em tempo real 100% local (whisper.cpp) de reuniões e push-to-talk de prompts para copiar na sua IA."
+  }
+}
