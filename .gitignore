@@ -4,3 +4,4 @@ models/ggml-*.bin
 __pycache__/
 *.pyc
 Cargo.lock
+pkg/
