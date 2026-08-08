@@ -1,0 +1,26 @@
+post_install() {
+    _model="/usr/lib/goat-reuniao/models/ggml-large-v3-turbo.bin"
+    _url="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin"
+
+    if [ ! -f "$_model" ]; then
+        echo ""
+        echo ">>> Modelo whisper não encontrado. Baixando (~1.6GB)..."
+        echo "    Isso pode demorar dependendo da sua conexão."
+        echo ""
+        mkdir -p /usr/lib/goat-reuniao/models
+        curl -fSL -o "$_model" "$_url" || {
+            echo ">>> Falha ao baixar modelo. Baixe manualmente:"
+            echo "    curl -fSL -o $_model $_url"
+        }
+    fi
+
+    echo ""
+    echo ">>> Para usar hotkeys globais (F1/Mouse4/F2), adicione seu usuário ao grupo input:"
+    echo "    sudo usermod -aG input \$USER"
+    echo "    (efetue relogin depois)"
+    echo ""
+}
+
+post_upgrade() {
+    post_install
+}
