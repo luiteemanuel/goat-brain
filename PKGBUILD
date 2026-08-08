@@ -3,13 +3,13 @@ pkgver=0.1.0
 pkgrel=1
 pkgdesc="Transcrição local de reuniões e push-to-talk via whisper.cpp — Mouse 4/F1 prompt, F2 reunião"
 arch=('x86_64')
-url="https://github.com/luite/goat-reuniao"
+url="https://github.com/luiteemanuel/goat-brain"
 license=('MIT')
 depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator' 'wtype' 'wl-clipboard'
          'pipewire-pulse' 'ffmpeg')
 makedepends=('cargo')
 install=goat-reuniao.install
-source=("$pkgname::git+file:///home/luite/Documents/goat-brain")
+source=("$pkgname::git+https://github.com/luiteemanuel/goat-brain.git")
 sha256sums=('SKIP')
 
 _model_url="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin"
@@ -23,7 +23,6 @@ build() {
     cd "$srcdir/$pkgname"
     cargo build --release --frozen --manifest-path src-tauri/Cargo.toml
 
-    # Baixar modelo se não existir no source
     mkdir -p models
     if [ ! -f models/ggml-large-v3-turbo.bin ]; then
         echo ">>> Baixando modelo whisper large-v3-turbo (~1.6GB)..."
