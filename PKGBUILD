@@ -9,24 +9,21 @@ depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator' 'wtype' 'wl-clipboard
          'pipewire-pulse' 'ffmpeg')
 makedepends=('cargo')
 install=goat-reuniao.install
-source=("$pkgname::git+file://$startdir"
-        "goat-reuniao.desktop")
-sha256sums=('SKIP' 'SKIP')
+source=("$pkgname::git+file:///home/luite/Documents/goat-brain")
+sha256sums=('SKIP')
 
 _model_url="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin"
-_model_sha="30eed2485cb740db93743ec7652949741790f10592a26e12e34c5865187e1511"
 
 prepare() {
-    cd "$pkgname"
-    export RUSTUP_TOOLCHAIN=stable
+    cd "$srcdir/$pkgname"
     cargo fetch --locked --manifest-path src-tauri/Cargo.toml
 }
 
 build() {
-    cd "$pkgname"
+    cd "$srcdir/$pkgname"
     cargo build --release --frozen --manifest-path src-tauri/Cargo.toml
 
-    # Baixar modelo se não existir no source local
+    # Baixar modelo se não existir no source
     mkdir -p models
     if [ ! -f models/ggml-large-v3-turbo.bin ]; then
         echo ">>> Baixando modelo whisper large-v3-turbo (~1.6GB)..."
@@ -35,7 +32,7 @@ build() {
 }
 
 package() {
-    cd "$pkgname"
+    cd "$srcdir/$pkgname"
 
     install -Dm755 src-tauri/target/release/goat-reuniao \
         "$pkgdir/usr/bin/goat-reuniao"
@@ -54,7 +51,6 @@ package() {
     install -Dm644 goat-reuniao.desktop \
         "$pkgdir/usr/share/applications/goat-reuniao.desktop"
 
-    # Modelo: instalar se disponível, senão mensagem pós-install
     if [ -f models/ggml-large-v3-turbo.bin ]; then
         install -Dm644 models/ggml-large-v3-turbo.bin \
             "$pkgdir/usr/lib/goat-reuniao/models/ggml-large-v3-turbo.bin"
