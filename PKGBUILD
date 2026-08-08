@@ -17,17 +17,17 @@ _model_url="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large
 prepare() {
     cd "$srcdir/$pkgname"
     cargo fetch --locked --manifest-path src-tauri/Cargo.toml
-}
-
-build() {
-    cd "$srcdir/$pkgname"
-    cargo build --release --frozen --manifest-path src-tauri/Cargo.toml
 
     mkdir -p models
     if [ ! -f models/ggml-large-v3-turbo.bin ]; then
         echo ">>> Baixando modelo whisper large-v3-turbo (~1.6GB)..."
         curl -fSL -o models/ggml-large-v3-turbo.bin "$_model_url"
     fi
+}
+
+build() {
+    cd "$srcdir/$pkgname"
+    cargo build --release --frozen --manifest-path src-tauri/Cargo.toml
 }
 
 package() {
