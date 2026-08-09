@@ -7,6 +7,8 @@ url="https://github.com/luiteemanuel/goat-brain"
 license=('MIT')
 depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator' 'wtype' 'wl-clipboard'
          'pipewire-pulse' 'ffmpeg')
+optdepends=('xdotool: colagem via X11 (fallback)'
+            'xclip: clipboard via X11 (fallback)')
 makedepends=('cargo' 'cmake' 'nasm')
 install=goat-reuniao.install
 source=("$pkgname::git+https://github.com/luiteemanuel/goat-brain.git")

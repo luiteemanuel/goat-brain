@@ -1,0 +1,24 @@
+pkgbase = goat-reuniao
+	pkgdesc = Transcrição local de reuniões e push-to-talk via whisper.cpp — Mouse 4/F1 prompt, F2 reunião
+	pkgver = 0.1.0
+	pkgrel = 1
+	url = https://github.com/luiteemanuel/goat-brain
+	install = goat-reuniao.install
+	arch = x86_64
+	license = MIT
+	makedepends = cargo
+	makedepends = cmake
+	makedepends = nasm
+	depends = webkit2gtk-4.1
+	depends = gtk3
+	depends = libayatana-appindicator
+	depends = wtype
+	depends = wl-clipboard
+	depends = pipewire-pulse
+	depends = ffmpeg
+	optdepends = xdotool: colagem via X11 (fallback)
+	optdepends = xclip: clipboard via X11 (fallback)
+	source = goat-reuniao::git+https://github.com/luiteemanuel/goat-brain.git
+	sha256sums = SKIP
+
+pkgname = goat-reuniao
