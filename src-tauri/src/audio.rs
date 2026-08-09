@@ -148,22 +148,54 @@ where
         .build_input_stream::<T, _, _>(
             config,
             move |data, _| {
-                let mut acc = 0.0f64;
-                let mut out: Vec<i16> = Vec::with_capacity(BLOCK);
-                for frame in data.chunks_exact(channels) {
-                    acc += 1.0;
-                    if acc < ratio {
-                        continue;
+                if ratio <= 1.0 {
+                    // Upsampling or same rate: interpolate
+                    let mut acc = 0.0f64;
+                    let mut out: Vec<i16> = Vec::with_capacity(BLOCK);
+                    let mut prev: Vec<i16> = Vec::with_capacity(channels);
+                    prev.resize(channels, 0);
+                    for frame in data.chunks_exact(channels) {
+                        let cur: Vec<i16> = frame.iter().map(|&s| s.to_i16()).collect();
+                        acc += 1.0;
+                        while acc >= 1.0 {
+                            acc -= 1.0;
+                            let mut sample: i32 = 0;
+                            for ch in 0..channels {
+                                sample += ((1.0 - acc) * prev[ch] as f64 + acc * cur[ch] as f64) as i32;
+                            }
+                            out.push((sample / channels as i32) as i16);
+                        }
+                        prev = cur;
                     }
-                    acc -= ratio;
-                    let mut sum: i32 = 0;
-                    for &s in frame {
-                        sum += s.to_i16() as i32;
+                    if !out.is_empty() {
+                        cb(out);
                     }
-                    out.push((sum / channels as i32) as i16);
-                }
-                if !out.is_empty() {
-                    cb(out);
+                } else {
+                    // Downsampling: average skipped samples for anti-aliasing
+                    let mut acc = 0.0f64;
+                    let mut out: Vec<i16> = Vec::with_capacity(BLOCK);
+                    let mut sum_acc: Vec<i64> = vec![0; channels];
+                    let mut count_acc = 0usize;
+                    for frame in data.chunks_exact(channels) {
+                        for (ch, &s) in frame.iter().enumerate() {
+                            sum_acc[ch] += s.to_i16() as i64;
+                        }
+                        count_acc += 1;
+                        acc += 1.0;
+                        if acc >= ratio {
+                            let mut sample: i32 = 0;
+                            for ch in 0..channels {
+                                sample += (sum_acc[ch] / count_acc as i64) as i32;
+                            }
+                            out.push((sample / channels as i32) as i16);
+                            sum_acc.iter_mut().for_each(|x| *x = 0);
+                            count_acc = 0;
+                            acc -= ratio;
+                        }
+                    }
+                    if !out.is_empty() {
+                        cb(out);
+                    }
                 }
             },
             |e| eprintln!("[goat] erro de áudio: {e}"),

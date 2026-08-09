@@ -1,4 +1,3 @@
-use std::io::Write;
 use std::process::{Command, Stdio};
 use std::sync::OnceLock;
 
@@ -55,34 +54,59 @@ pub fn notify(title: &str, body: &str) {
         .status();
 }
 
-/// Copia o texto pro clipboard e injeta Ctrl+V no campo focado (wtype,
-/// teclado virtual Wayland). Retorna false se wtype não estiver disponível.
+/// Copia o texto pro clipboard e injeta Ctrl+V no campo focado.
+/// Tenta Wayland (wtype) primeiro, depois X11 (xdotool).
+/// Retorna false se nenhum estiver disponível.
 pub fn type_text(text: &str) -> bool {
-    let mut copy = match Command::new("wl-copy")
+    // Tentar wl-copy (Wayland)
+    if let Ok(mut child) = Command::new("wl-copy")
         .stdin(Stdio::piped())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
     {
-        Ok(c) => c,
-        Err(_) => return false,
-    };
-    let mut stdin = match copy.stdin.take() {
-        Some(s) => s,
-        None => return false,
-    };
-    let _ = stdin.write_all(text.as_bytes());
-    drop(stdin);
-    if copy.wait().map(|s| !s.success()).unwrap_or(true) {
-        return false;
+        if let Some(mut s) = child.stdin.take() {
+            let _ = std::io::Write::write_all(&mut s, text.as_bytes());
+        }
+        let ok = child.wait().map(|s| s.success()).unwrap_or(false);
+        if ok {
+            return paste_wayland() || paste_x11();
+        }
     }
-    match Command::new("wtype")
+    // Fallback: xclip (X11)
+    if let Ok(mut child) = Command::new("xclip")
+        .args(["-selection", "clipboard"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+    {
+        if let Some(mut s) = child.stdin.take() {
+            let _ = std::io::Write::write_all(&mut s, text.as_bytes());
+        }
+        if child.wait().map(|s| s.success()).unwrap_or(false) {
+            return paste_x11();
+        }
+    }
+    false
+}
+
+fn paste_wayland() -> bool {
+    Command::new("wtype")
         .args(["-M", "ctrl", "v"])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status()
-    {
-        Ok(s) => s.success(),
-        Err(_) => false,
-    }
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
+fn paste_x11() -> bool {
+    Command::new("xdotool")
+        .args(["key", "ctrl+v"])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
 }

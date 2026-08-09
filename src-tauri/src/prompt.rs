@@ -49,8 +49,9 @@ impl PromptRecorder {
         if stream_slot.is_none() {
             return Ok(None);
         }
+        // Signal the callback to stop extending the buffer, then drop the
+        // stream so all in-flight callbacks finish before we consume the buffer.
         self.recording.store(false, Ordering::Release);
-        // Dropping the stream stops callbacks before the buffer is consumed.
         stream_slot.take();
         drop(stream_slot);
 

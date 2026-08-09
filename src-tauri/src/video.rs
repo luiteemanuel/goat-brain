@@ -113,6 +113,20 @@ fn run_job(
     }
 }
 
+fn probe_duration_secs(path: &str) -> Option<f64> {
+    let out = Command::new("ffprobe")
+        .args([
+            "-v", "error",
+            "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1",
+            path,
+        ])
+        .output()
+        .ok()?;
+    let text = String::from_utf8_lossy(&out.stdout);
+    text.trim().parse::<f64>().ok()
+}
+
 fn transcribe_video(
     app: &AppHandle,
     backend: &WhisperBackend,
@@ -126,6 +140,9 @@ fn transcribe_video(
     if !backend.is_online() {
         bail!("motor whisper offline — aguarde o app carregar ou reinicie");
     }
+    let total_segments = probe_duration_secs(path)
+        .map(|d| ((d.ceil() as usize) + SEG_SEC - 1) / SEG_SEC)
+        .unwrap_or(0);
     let mut child = Command::new("ffmpeg")
         .args([
             "-v", "error", "-i", path, "-ar", "16000", "-ac", "1", "-f", "s16le", "-",
@@ -157,12 +174,12 @@ fn transcribe_video(
         pending.extend_from_slice(&read_buf[..count]);
         while pending.len() >= SEG_SAMPLES * 2 {
             let bytes: Vec<u8> = pending.drain(..SEG_SAMPLES * 2).collect();
-            transcribe_chunk(app, backend, job, language, &bytes, index, &mut texts)?;
+            transcribe_chunk(app, backend, job, language, &bytes, index, total_segments, &mut texts)?;
             index += 1;
         }
     }
     if !pending.is_empty() {
-        transcribe_chunk(app, backend, job, language, &pending, index, &mut texts)?;
+        transcribe_chunk(app, backend, job, language, &pending, index, total_segments, &mut texts)?;
     }
     let status = child.wait()?;
     if !status.success() {
@@ -189,6 +206,7 @@ fn transcribe_chunk(
     language: &str,
     bytes: &[u8],
     index: usize,
+    total: usize,
     texts: &mut Vec<String>,
 ) -> anyhow::Result<()> {
     if job.is_canceled() {
@@ -215,7 +233,7 @@ fn transcribe_chunk(
         "video_progress",
         VideoProgressEvent {
             done: index + 1,
-            total: 0,
+            total,
         },
     );
     Ok(())
